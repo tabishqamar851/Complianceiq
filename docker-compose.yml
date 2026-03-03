@@ -1,0 +1,43 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: complianceiq
+      POSTGRES_USER: ciq_user
+      POSTGRES_PASSWORD: ciq_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      APP_ENV: development
+      SECRET_KEY: change-this-to-random-32-chars
+      DATABASE_URL: postgresql+asyncpg://ciq_user:ciq_pass@db:5432/complianceiq
+      SYNC_DATABASE_URL: postgresql://ciq_user:ciq_pass@db:5432/complianceiq
+      REDIS_URL: redis://redis:6379/0
+      FRONTEND_URL: http://localhost:3000
+    depends_on:
+      - db
+      - redis
+
+  frontend:
+    image: nginx:alpine
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+
+volumes:
+  pgdata:
